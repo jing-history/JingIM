@@ -42,20 +42,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <dependency>
-            <!-- Setup Spring Data JPA Repository support -->
+<!--        <dependency>
+            &lt;!&ndash; Setup Spring Data JPA Repository support &ndash;&gt;
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
+
         <!-- Scala 特性 -->
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -83,6 +84,24 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>19.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>2.7.0</version>
         </dependency>
 
         <!-- 只需引入spring-boot-devtools 即可实现热部署 -->
@@ -135,13 +154,26 @@
                 <configuration>
                     <recompileMode>incremental</recompileMode>
                     <scalaVersion>${scala.version}</scalaVersion>
-                    <args>
+                    <launchers>
+                        <launcher>
+                            <id>app</id>
+                            <mainClass>ml.jinggo.MyIMApplication</mainClass>
+                            <args>
+                                <arg>-deprecation</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xms256m</jvmArg>
+                                <jvmArg>-Xmx2048m</jvmArg>
+                            </jvmArgs>
+                        </launcher>
+                    </launchers>
+                   <!-- <args>
                         <arg>-deprecation</arg>
                     </args>
                     <jvmArgs>
                         <jvmArg>-Xms64m</jvmArg>
                         <jvmArg>Xmx1024m</jvmArg>
-                    </jvmArgs>
+                    </jvmArgs>-->
                 </configuration>
             </plugin>
         </plugins>
