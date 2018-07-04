@@ -10,7 +10,7 @@ import scala.beans.BeanProperty
   */
 class AddInfo {
 
-  @BeanProperty val id: Integer = _
+  @BeanProperty var id: Integer = _
 
   @BeanProperty var uid: Integer = _
 

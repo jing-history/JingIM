@@ -11,7 +11,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
   */
 @SpringBootApplication
 @EnableSwagger2
-@EntityScan(Array("ml.jinggo.domain"))
+@EntityScan(Array("ml.jinggo.entity"))
 class MyIMApplication {
 
 }
