@@ -2,7 +2,14 @@
 spring:
   application:
     name: JingIM  # Service registers under this name
-
+  # Datasource
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://39.107.236.239:3306/websocket?useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: root
+    driver-class-name: com.mysql.jdbc.Driver
+  # Redis Configration
   redis:
     database: 0
    # Redis服务器地址
@@ -23,6 +30,16 @@ spring:
    # 连接池中的最大空闲连接
       min-idle: 5
 
+# Mybayis
+mybatis:
+  mapper-locations: classpath*:/mapper/*Mapper.xml
+  type-aliases-package: ml.jinggo.entity
+  type-handlers-package: ml.jinggo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    use-generated-keys: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
 
 management:
   security:
