@@ -3,7 +3,7 @@ package ml.jinggo.common
 /**
   * Created by gz12 on 2018-07-06.
   */
-class SystemConstant {
+object SystemConstant {
 
   final val SUCCESS: Int = 0
 

@@ -19,7 +19,7 @@ class User extends Serializable{
   //用户名
   @BeanProperty
   @NotEmpty
-  var userName: String = _
+  var username: String = _
 
   //密码
   @BeanProperty
@@ -44,4 +44,16 @@ class User extends Serializable{
   @NotNull
   @DateTimeFormat(pattern="yyyy-MM-dd")
   var createDate: Date = _
+
+  //性别
+  @BeanProperty var sex: Integer = _
+
+  //状态
+  @BeanProperty var status: String = _
+
+  //激活码
+  @BeanProperty var active: String = _
+
+  override def toString = "id = " + id + ", username = " + username + ", password = " + password + ", sign = " + sign + ", email = " + email + ", avatar = " + avatar + ", createDate = " + createDate + ", sex = " + sex + ", status = " + status
+
 }
