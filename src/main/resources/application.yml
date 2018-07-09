@@ -2,6 +2,15 @@
 spring:
   application:
     name: JingIM  # Service registers under this name
+  # Spring MVC
+  mvc:
+    view:
+      prefix: /WEB-INF/view/
+      suffix: .jsp
+  http:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   # Datasource
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
@@ -43,4 +52,4 @@ mybatis:
 
 management:
   security:
-    enabled: false
+    enabled: true
