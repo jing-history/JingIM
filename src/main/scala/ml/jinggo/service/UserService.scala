@@ -17,6 +17,31 @@ import org.slf4j.{Logger, LoggerFactory}
 @Service
 class UserService @Autowired()(private var userMapper: UserMapper) {
 
+  /**
+    * 用户邮件和密码是否匹配
+    * @param user
+    * @return
+    */
+  def matchUser(user: User): User = {
+    if (user == null || user.getEmail == null) {
+      return null
+    }
+    val u: User = userMapper.matchUser(user.getEmail)
+    //密码不匹配
+    if(u == null || !SecurityUtil.matchs(user.getPassword, u.getPassword)){
+      return null
+    }
+    u
+  }
+
+  def existEmail(email: String): Boolean = {
+    if (email == null || "".equals(email))
+      return false
+    else
+      userMapper.matchUser(email) != null
+  }
+
+
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserService])
 
   @Transactional

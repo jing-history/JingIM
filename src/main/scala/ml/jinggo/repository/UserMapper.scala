@@ -1,7 +1,7 @@
 package ml.jinggo.repository
 
 import ml.jinggo.entity.User
-import org.apache.ibatis.annotations.{Insert, Options}
+import org.apache.ibatis.annotations.{Insert, Options, Select}
 import org.springframework.stereotype.Repository
 
 /**
@@ -12,6 +12,7 @@ trait UserMapper {
 
   /**
     * description 保存用户信息
+    *
     * @param user
     * @return Int
     */
@@ -19,4 +20,6 @@ trait UserMapper {
   @Options(useGeneratedKeys = true, keyProperty = "id")
   def saveUser(user: User): Int = user.getId
 
+  @Select(Array("select id,username,email,avatar,sex,sign,password,status,active from t_user where email = #{email}"))
+  def matchUser(email: String): User
 }
