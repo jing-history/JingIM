@@ -3,9 +3,9 @@ package ml.jinggo.web
 import javax.servlet.http.HttpServletRequest
 
 import com.google.gson.Gson
-import io.swagger.annotations.Api
+import io.swagger.annotations.{Api, ApiOperation}
 import ml.jinggo.common.SystemConstant
-import ml.jinggo.domain.ResultSet
+import ml.jinggo.domain.{FriendAndGroupInfo, ResultSet}
 import ml.jinggo.entity.User
 import ml.jinggo.service.UserService
 import org.slf4j.{Logger, LoggerFactory}
@@ -25,6 +25,42 @@ class UserController @Autowired()(private val userService : UserService){
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserController])
 
   private final val gson: Gson = new Gson
+
+  /**
+    * description 更新签名
+    * @param sign
+    *
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/updateSign"), method = Array(RequestMethod.POST))
+  def updateSign(request: HttpServletRequest, @RequestParam("sign") sign: String): String = {
+    val user:User = request.getSession.getAttribute("user").asInstanceOf[User]
+    user.setSign(sign)
+    if(userService.updateSing(user)) {
+      gson.toJson(new ResultSet)
+    } else {
+      gson.toJson(new ResultSet(SystemConstant.ERROR, SystemConstant.ERROR_MESSAGE))
+    }
+  }
+
+  /**
+    * 初始化主界面数据
+    */
+  @ResponseBody
+  @ApiOperation("初始化聊天界面数据，分组列表好友信息、群列表")
+  @RequestMapping(value = Array("/init/{userId}"), method = Array(RequestMethod.POST))
+  def init(@PathVariable("userId") userId: Int): String = {
+    var data = new FriendAndGroupInfo
+    //用户信息
+    var user = userService.findUserById(userId)
+    user.setStatus("online")
+    data.mine = user
+    //用户群组列表
+    data.group = userService.findGroupsById(userId)
+    //用户好友列表
+    data.friend = userService.findFriendGroupsById(userId)
+    gson.toJson(new ResultSet[FriendAndGroupInfo](data))
+  }
 
   /**
     * 跳转主页
