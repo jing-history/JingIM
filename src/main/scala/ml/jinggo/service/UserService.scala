@@ -2,7 +2,8 @@ package ml.jinggo.service
 
 import javax.servlet.http.HttpServletRequest
 
-import ml.jinggo.entity.User
+import ml.jinggo.common.SystemConstant
+import ml.jinggo.entity.{FriendGroup, User}
 import ml.jinggo.repository.UserMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -44,6 +45,13 @@ class UserService @Autowired()(private var userMapper: UserMapper) {
 
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserService])
 
+  def createFriendGroup( groupName: String, uid: Integer): Boolean = {
+    if (uid == null || groupName == null || "".equals(uid) || "".equals(groupName))
+      return false
+    else
+      userMapper.createFriendGroup(new FriendGroup(uid, groupName)) == 1
+  }
+
   @Transactional
   def saveUser(user: User, request: HttpServletRequest): Boolean = {
     if (user == null || user.getUsername == null || user.getPassword == null || user.getEmail == null) {
@@ -57,7 +65,9 @@ class UserService @Autowired()(private var userMapper: UserMapper) {
       user.setPassword(SecurityUtil.encrypt(user.getPassword))
       userMapper.saveUser(user)
       LOGGER.info("userid = " + user.getId)
-      true
+      //创建默认的好友分组
+      createFriendGroup(SystemConstant.DEFAULT_GROUP_NAME, user.getId)
     }
+    true
   }
 }

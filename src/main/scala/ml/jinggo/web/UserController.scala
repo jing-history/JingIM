@@ -10,12 +10,14 @@ import ml.jinggo.entity.User
 import ml.jinggo.service.UserService
 import org.slf4j.{Logger, LoggerFactory}
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Controller
+import org.springframework.ui.Model
 import org.springframework.web.bind.annotation._
 
 /**
   * Created by gz12 on 2018-07-03.
   */
-@RestController
+@Controller
 @Api(value = "用户相关操作")
 @RequestMapping(value = Array("/user"))
 class UserController @Autowired()(private val userService : UserService){
@@ -25,12 +27,24 @@ class UserController @Autowired()(private val userService : UserService){
   private final val gson: Gson = new Gson
 
   /**
+    * 跳转主页
+    */
+  @RequestMapping(value = Array("/index"), method = Array(RequestMethod.GET))
+  def index(model: Model, request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user")
+    model.addAttribute("user", user)
+    LOGGER.info("用户" + user + "登陆服务器")
+    "index"
+  }
+
+  /**
     * 注册
     * @param user
     * @param request
     * @return
     */
   @RequestMapping(value = Array("/register"), method = Array(RequestMethod.POST))
+  @ResponseBody
   def register(@RequestBody user: User, request: HttpServletRequest): String = {
     if(userService.saveUser(user, request)) {
       gson.toJson(new ResultSet[String](SystemConstant.SUCCESS, SystemConstant.REGISTER_SUCCESS))
@@ -45,6 +59,7 @@ class UserController @Autowired()(private val userService : UserService){
     * @return
     */
   @RequestMapping(value = Array("/existEmail"), method = Array(RequestMethod.POST))
+  @ResponseBody
   def existEmail(@RequestParam("email") email: String): String = {
     gson.toJson(new ResultSet(userService.existEmail(email)))
   }
@@ -56,6 +71,7 @@ class UserController @Autowired()(private val userService : UserService){
     * @return
     */
   @RequestMapping(value = Array("/login"), method = Array(RequestMethod.POST))
+  @ResponseBody
   def login(@RequestBody user: User, request: HttpServletRequest): String = {
     val u: User = userService.matchUser(user)
     //未激活

@@ -1,6 +1,6 @@
 package ml.jinggo.repository
 
-import ml.jinggo.entity.User
+import ml.jinggo.entity.{FriendGroup, User}
 import org.apache.ibatis.annotations.{Insert, Options, Select}
 import org.springframework.stereotype.Repository
 
@@ -9,6 +9,14 @@ import org.springframework.stereotype.Repository
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+
+  /**
+    * description 创建好友分组列表
+    * param uid
+    * param groupName
+    */
+  @Insert(Array("insert into t_friend_group(group_name,uid) values(#{groupName},#{uid})"))
+  def createFriendGroup(friendGroup: FriendGroup): Int
 
   /**
     * description 保存用户信息
