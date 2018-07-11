@@ -3,8 +3,8 @@ package ml.jinggo.service
 import javax.servlet.http.HttpServletRequest
 
 import ml.jinggo.common.SystemConstant
-import ml.jinggo.domain.{FriendList, GroupList}
-import ml.jinggo.entity.{AddMessage, FriendGroup, Receive, User}
+import ml.jinggo.domain.{AddInfo, FriendList, GroupList}
+import ml.jinggo.entity._
 import ml.jinggo.repository.UserMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 import ml.jinggo.util.{DateUtil, SecurityUtil, UUIDUtil}
 import org.apache.ibatis.annotations.{Param, Select}
 import org.slf4j.{Logger, LoggerFactory}
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.{CacheEvict, Cacheable}
 
 import scala.collection.JavaConversions
 import scala.collection.JavaConverters._
@@ -24,6 +24,64 @@ import java.util.List
   */
 @Service
 class UserService @Autowired()(private var userMapper: UserMapper) {
+
+  /**
+    * description 添加好友操作
+    * param mid 我的id
+    * param mgid 我设定的分组
+    * param tid 对方的id
+    * param tgid 对方设定的分组
+    * param messageBoxId 消息盒子的消息id
+    */
+  @Transactional
+  @CacheEvict(value = Array("findUserById","findFriendGroupsById","findUserByGroupId"), allEntries = true)
+  def addFriend(mid: Integer, mgid: Integer, tid: Integer, tgid: Integer, messageBoxId: Integer): Boolean = {
+    val add = new AddFriends(mid, mgid, tid, tgid)
+    if (userMapper.addFriend(add) != 0) {
+      updateAddMessage(messageBoxId, 1)
+    }
+    false
+  }
+
+  /**
+    * description 更新好友、群组信息请求
+    * param addMessage
+    * return
+    */
+  @Transactional
+  def updateAddMessage(messageBoxId: Integer, agree: Integer): Boolean = {
+    var addMessage = new AddMessage
+    addMessage.setAgree(agree)
+    addMessage.setId(messageBoxId)
+    userMapper.updateAddMessage(addMessage) == 1
+  }
+
+  /**
+    * description 统计消息
+    * param uid
+    */
+  def countUnHandMessage(uid: Integer, agree: Integer): Integer = userMapper.countUnHandMessage(uid, agree)
+
+  /**
+    * description 查询添加好友、群组信息
+    * param uid
+    * return List[AddInfo]
+    */
+  def findAddInfo(uid: Integer): List[AddInfo] = {
+    val list = userMapper.findAddInfo(uid)
+    JavaConversions.collectionAsScalaIterable(list).foreach { info => {
+      if (info.Type == 0) {
+        info.setContent("申请添加你为好友")
+      } else {
+        val group: GroupList = userMapper.findGroupById(info.getFrom_group)
+        info.setContent("申请加入 '" + group.getGroupname + "' 群聊中!")
+      }
+      info.setHref(null)
+      info.setUser(findUserById(info.getFrom))
+      LOGGER.info(info.toString())
+    } }
+    list
+  }
 
   /**
     * description 添加好友、群组信息请求

@@ -1,7 +1,7 @@
 package ml.jinggo.repository
 
-import ml.jinggo.domain.{FriendList, GroupList}
-import ml.jinggo.entity.{AddMessage, FriendGroup, Receive, User}
+import ml.jinggo.domain.{AddInfo, FriendList, GroupList}
+import ml.jinggo.entity._
 import org.apache.ibatis.annotations._
 import java.util.List
 
@@ -10,6 +10,52 @@ import java.util.List
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+
+  /**
+    * description 更新好友、群组信息请求
+    * param addMessage
+    * return
+    */
+  @Update(Array("update t_add_message set agree = #{agree} where id = #{id}"))
+  def updateAddMessage(addMessage: AddMessage): Int
+
+  /**
+    * description 添加好友操作
+    * param mgid 分组id
+    * param tid 对方用户id
+    * param mid 自己的id
+    * param tgid 对方分组id
+    */
+  @Insert(Array("insert into t_friend_group_friends(fgid,uid) values(#{mgid},#{tid}),(#{tgid},#{mid})"))
+  def addFriend(addFriends: AddFriends): Int
+
+  /**
+    * description 根据群id查询群信息
+    * param gid
+    * return
+    */
+  @Select(Array("select id,group_name,avatar,create_id from t_group where id = #{gid}"))
+  def findGroupById(@Param("gid") gid: Integer): GroupList
+
+  /**
+    * description 统计未处理的消息
+    * param uid
+    */
+  @Select(Array("<script> select count(*) from t_add_message where to_uid=#{uid} <if test='agree!=null'> and agree=#{agree} </if> </script>"))
+  def countUnHandMessage(@Param("uid") uid: Integer, @Param("agree") agree: Integer): Integer
+
+  /**
+    * description 查询添加好友、群组信息
+    * param uid
+    * return List[AddInfo]
+    */
+  @Select(Array("select * from t_add_message where to_uid = #{uid} order by time desc"))
+  @Results(value = Array(new Result(property="from",column="from_uid"),
+    new Result(property="uid",column="to_uid"),
+    new Result(property="read",column="agree"),
+    new Result(property="from_group",column="group_id"))
+  )
+  def findAddInfo(@Param("uid") uid: Integer): List[AddInfo]
 
   /**
     * description 添加好友、群组信息请求

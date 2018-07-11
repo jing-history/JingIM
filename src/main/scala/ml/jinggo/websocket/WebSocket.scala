@@ -39,6 +39,11 @@ class WebSocket {
       case "addFriend" => {
         WebSocketUtil.addFriend(uid, mess)
       }
+      case "agreeAddFriend" => {
+        if (WebSocketUtil.getSessions.get(mess.getTo.getId) != null) {
+          WebSocketUtil.sendMessage(message, WebSocketUtil.getSessions.get(mess.getTo.getId))
+        }
+      }
       case _ => {
         LOGGER.info("No Mapping Message!")
       }
