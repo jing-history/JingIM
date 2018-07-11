@@ -4,13 +4,13 @@ import javax.servlet.http.HttpServletRequest
 
 import ml.jinggo.common.SystemConstant
 import ml.jinggo.domain.{FriendList, GroupList}
-import ml.jinggo.entity.{FriendGroup, User}
+import ml.jinggo.entity.{AddMessage, FriendGroup, Receive, User}
 import ml.jinggo.repository.UserMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ml.jinggo.util.{DateUtil, SecurityUtil, UUIDUtil}
-import org.apache.ibatis.annotations.Select
+import org.apache.ibatis.annotations.{Param, Select}
 import org.slf4j.{Logger, LoggerFactory}
 import org.springframework.cache.annotation.Cacheable
 
@@ -26,7 +26,44 @@ import java.util.List
 class UserService @Autowired()(private var userMapper: UserMapper) {
 
   /**
+    * description 添加好友、群组信息请求
+    * param addMessage
+    * return
+    */
+  def saveAddMessage(addMessage: AddMessage): Int = userMapper.saveAddMessage(addMessage)
+
+  /**
+    * description 根据用户名和性别查询用户
+    * param username
+    * param sex
+    */
+  def findUsers(username: String, sex: Integer): List[User] = userMapper.findUsers(username, sex)
+
+  /**
+    * description 根据用户名和性别统计用户
+    * param username
+    * param sex
+    */
+  def countUsers(username: String, sex: Integer): Int = userMapper.countUser(username, sex)
+
+  /**
+    * 根据群组ID查询群里用户的信息
+    * @param gid
+    * @return List[User]
+    */
+  @Cacheable(value = Array("findUserByGroupId"), keyGenerator = "wiselyKeyGenerator")
+  def findUserByGroupId(gid: Int): List[User] = userMapper.findUserByGroupId(gid)
+
+  /**
+    * 保存用户聊天记录
+    * @param receive  聊天记录信息
+    * @return
+    */
+  def saveMessage(receive: Receive): Int = userMapper.saveMessage(receive)
+
+  /**
     * description 用户更新签名
+    *
     * @param user
     * @return Boolean
     */

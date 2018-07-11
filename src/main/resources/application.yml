@@ -14,15 +14,15 @@ spring:
   # Datasource
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    url: jdbc:mysql://39.107.236.239:3306/websocket?useUnicode=true&characterEncoding=utf-8
-    username: root
-    password: root
+    url: jdbc:mysql://192.168.5.111:3306/websocket?useUnicode=true&characterEncoding=utf-8
+    username: soonfor
+    password: sfadmin1379!
     driver-class-name: com.mysql.jdbc.Driver
   # Redis Configration
   redis:
     database: 0
    # Redis服务器地址
-    host: 39.107.236.239
+    host: 192.168.1.179
    # Redis服务器连接端口
     port: 6379
    # Redis服务器连接密码（默认为空）
@@ -50,6 +50,8 @@ mybatis:
     default-fetch-size: 100
     default-statement-timeout: 30
 
-management:
-  security:
-    enabled: true
+logging:
+  level:
+    ml:
+      jinggo:
+        repository: debug

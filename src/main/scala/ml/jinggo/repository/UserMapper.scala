@@ -1,7 +1,7 @@
 package ml.jinggo.repository
 
 import ml.jinggo.domain.{FriendList, GroupList}
-import ml.jinggo.entity.{FriendGroup, User}
+import ml.jinggo.entity.{AddMessage, FriendGroup, Receive, User}
 import org.apache.ibatis.annotations._
 import java.util.List
 
@@ -10,6 +10,46 @@ import java.util.List
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+
+  /**
+    * description 添加好友、群组信息请求
+    * param addMessage
+    * return
+    */
+  @Insert(Array("insert into t_add_message(from_uid,to_uid,group_id,remark,agree,type,time) values (#{fromUid},#{toUid},#{groupId},#{remark},#{agree},#{Type},#{time}) ON DUPLICATE KEY UPDATE remark=#{remark},time=#{time},agree=#{agree};"))
+  def saveAddMessage(addMessage: AddMessage): Int
+
+  /**
+    * description 根据用户名和性别查询用户
+    * param username
+    * param sex
+    */
+  @Select(Array("<script> select id,username,status,sign,avatar,email from t_user where 1=1 <if test='username != null'> and username like '%${username}%'</if><if test='sex != null'> and sex=#{sex}</if></script>"))
+  def findUsers(@Param("username")  username: String, @Param("sex") sex: Integer): List[User]
+
+  /**
+    * description 根据用户名和性别统计用户
+    * param username
+    * param sex
+    */
+  @Select(Array("<script> select count(*) from t_user where 1 = 1 <if test='username != null'> and username like '%${username}%'</if><if test='sex != null'> and sex=#{sex}</if></script>"))
+  def countUser(@Param("username")  username: String, @Param("sex") sex: Integer): Int
+
+  /**
+    * description 根据群组ID查询群里用户的信息
+    * param gid
+    * return List[User]
+    */
+  @Select(Array("select id,username,status,sign,avatar,email from t_user where id in(select uid from t_group_members where gid = #{gid})"))
+  def findUserByGroupId(gid: Int): List[User]
+
+  /**
+    * 保存用户聊天记录
+    * @param receive 聊天记录信息
+    * @return
+    */
+  @Insert(Array("insert into t_message(mid,toid,fromid,content,type,timestamp,status) values(#{id},#{toid},#{fromid},#{content},#{type},#{timestamp},#{status})"))
+  def saveMessage(receive: Receive): Int
 
   /**
     * description 更新签名
