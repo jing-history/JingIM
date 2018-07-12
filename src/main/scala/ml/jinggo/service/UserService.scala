@@ -26,6 +26,19 @@ import java.util.List
 class UserService @Autowired()(private var userMapper: UserMapper) {
 
   /**
+    * description 统计查询消息
+    * param uid 消息所属用户
+    * param mid 来自哪个用户
+    * param Type 消息类型，可能来自friend或者group
+    */
+  def countHistoryMessage(uid: Integer, mid: Integer, Type: String):Int = {
+    Type match {
+      case "friend" => userMapper.countHistoryMessage(uid, mid, Type)
+      case "group" => userMapper.countHistoryMessage(null, mid, Type)
+    }
+  }
+
+  /**
     * description 退出群
     * param groupMember
     */

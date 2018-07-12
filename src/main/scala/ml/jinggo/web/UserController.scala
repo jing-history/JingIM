@@ -1,5 +1,6 @@
 package ml.jinggo.web
 
+import java.util._
 import javax.servlet.http.HttpServletRequest
 
 import com.github.pagehelper.PageHelper
@@ -9,11 +10,13 @@ import ml.jinggo.common.SystemConstant
 import ml.jinggo.domain.{FriendAndGroupInfo, ResultPageSet, ResultSet}
 import ml.jinggo.entity.User
 import ml.jinggo.service.UserService
+import ml.jinggo.util.FileUtil
 import org.slf4j.{Logger, LoggerFactory}
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation._
+import org.springframework.web.multipart.MultipartFile
 
 /**
   * Created by gz12 on 2018-07-03.
@@ -26,6 +29,66 @@ class UserController @Autowired()(private val userService : UserService){
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserController])
 
   private final val gson: Gson = new Gson
+
+  /**
+    * description 客户端上传文件
+    * param file
+    * param request
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/upload/file"), method = Array(RequestMethod.POST))
+  def uploadFile(@RequestParam("file") file:MultipartFile,request: HttpServletRequest): String = {
+    if (file.isEmpty()) {
+      return gson.toJson(new ResultSet(SystemConstant.ERROR, SystemConstant.UPLOAD_FAIL))
+    }
+    val path = request.getServletContext.getRealPath("/")
+    val src = FileUtil.upload(SystemConstant.FILE_PATH, path, file)
+    var result = new HashMap[String, String]
+    //文件的相对路径地址
+    result.put("src", src)
+    result.put("name", file.getOriginalFilename)
+    LOGGER.info("文件" + file.getOriginalFilename + "上传成功")
+    gson.toJson(new ResultSet[HashMap[String, String]](result))
+  }
+
+  /**
+    * description 客户端上传图片
+    * param file
+    * param request
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/upload/image"), method = Array(RequestMethod.POST))
+  def uploadImage(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): String = {
+    if (file.isEmpty()) {
+      return gson.toJson(new ResultSet(SystemConstant.ERROR, SystemConstant.UPLOAD_FAIL))
+    }
+    val path = request.getServletContext.getRealPath("/")
+    val src = FileUtil.upload(SystemConstant.IMAGE_PATH, path, file)
+    var result = new HashMap[String, String]
+    //图片的相对路径地址
+    result.put("src", src)
+    LOGGER.info("图片" + file.getOriginalFilename + "上传成功")
+    gson.toJson(new ResultSet[HashMap[String, String]](result))
+  }
+
+  /**
+    * description 弹出聊天记录页面
+    * param id 与谁的聊天记录id
+    * param Type 类型，可能是friend或者是group
+    */
+  @RequestMapping(value = Array("/chatLogIndex"), method = Array(RequestMethod.GET))
+  def chatLogIndex(@RequestParam("id") id: Integer, @RequestParam("Type") Type: String,
+                   model: Model, request: HttpServletRequest): String = {
+    model.addAttribute("id", id)
+    model.addAttribute("Type", Type)
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    var pages: Int = userService.countHistoryMessage(user.getId, id, Type)
+    pages = if (pages < SystemConstant.SYSTEM_PAGE) pages else (pages / SystemConstant.SYSTEM_PAGE + 1)
+    model.addAttribute("pages", pages)
+    "chatLog"
+  }
 
   /**
     * description 退出群

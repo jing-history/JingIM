@@ -10,6 +10,15 @@ import java.util.List
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+  /**
+    * description 统计查询消息
+    * param uid 消息所属用户
+    * param mid 来自哪个用户
+    * param Type 消息类型，可能来自friend或者group
+    */
+  @Select(Array("<script> select count(*) from t_message where type = #{Type} and " +
+    "<choose><when test='uid!=null and mid !=null'>(toid = #{uid} and mid = #{mid}) or (toid = #{mid} and mid = #{uid}) </when><when test='mid != null'> mid = #{mid} </when></choose> order by timestamp </script>"))
+  def countHistoryMessage(@Param("uid") uid: Integer, @Param("mid") mid: Integer, @Param("Type") Type: String): Int
 
   /**
     * description 退出群
