@@ -9,14 +9,14 @@ import ml.jinggo.repository.UserMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import ml.jinggo.util.{DateUtil, SecurityUtil, UUIDUtil}
-import org.apache.ibatis.annotations.{Delete, Param, Select}
+import ml.jinggo.util.{DateUtil, SecurityUtil, UUIDUtil, WebUtil}
+import org.apache.ibatis.annotations.{Delete, Param, Select, Update}
 import org.slf4j.{Logger, LoggerFactory}
 import org.springframework.cache.annotation.{CacheEvict, Cacheable}
 
 import scala.collection.JavaConversions
 import scala.collection.JavaConverters._
-import java.util.List
+import java.util._
 
 /**
   * 用户信息相关操作
@@ -24,6 +24,101 @@ import java.util.List
   */
 @Service
 class UserService @Autowired()(private var userMapper: UserMapper) {
+
+  private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserService])
+  //电子邮件相关服务
+  @Autowired private var mailService: MailService = _
+
+  /**
+    * description 激活码激活用户
+    * param activeCode
+    * return Int
+    */
+  def activeUser(activeCode: String): Int = {
+    if (activeCode == null || "".equals(activeCode)) {
+      return 0
+    }
+    userMapper.activeUser(activeCode)
+  }
+
+  /**
+    * description 查询离线消息
+    * param uid
+    * param status 历史消息还是离线消息 0代表离线 1表示已读
+    */
+  def findOffLineMessage(uid: Integer, status: Integer):List[Receive] = userMapper.findOffLineMessage(uid, status)
+
+  /**
+    * description 查询历史消息
+    * param uid
+    * param
+    */
+  def findHistoryMessage(user: User, mid: Integer, Type: String):List[ChatHistory] = {
+    val list = new ArrayList[ChatHistory]()
+    //单人聊天记录
+    if ("friend".equals(Type)) {
+      //查找聊天记录
+      val historys:List[Receive] = userMapper.findHistoryMessage(user.getId, mid, Type)
+      val toUser = findUserById(mid)
+      JavaConversions.collectionAsScalaIterable(historys).foreach { history => {
+        var chatHistory: ChatHistory = null
+        if(history.getId == mid){
+          chatHistory = new ChatHistory(history.getId, toUser.getUsername,toUser.getAvatar,history.getContent,history.getTimestamp)
+        } else {
+          chatHistory = new ChatHistory(history.getId, user.getUsername,user.getAvatar,history.getContent,history.getTimestamp)
+        }
+        list.add(chatHistory)
+      } }
+    }
+    //群聊天记录
+    if ("group".equals(Type)) {
+      //查找聊天记录
+      val historys:List[Receive] = userMapper.findHistoryMessage(null, mid, Type)
+      JavaConversions.collectionAsScalaIterable(historys).foreach { history => {
+        var chatHistory: ChatHistory = null
+        val u = findUserById(history.getFromid)
+        if (history.getFromid().equals(user.getId)) {
+          chatHistory = new ChatHistory(user.getId, user.getUsername,user.getAvatar,history.getContent,history.getTimestamp)
+        } else {
+          chatHistory = new ChatHistory(history.getId, u.getUsername,u.getAvatar,history.getContent,history.getTimestamp)
+        }
+        list.add(chatHistory)
+      }}
+    }
+    return list
+  }
+
+  /**
+    * description 移动好友分组
+    * param groupId 新的分组id
+    * param uId 被移动的好友id
+    * param mId 我的id
+    * return
+    */
+  //清除缓存
+  @CacheEvict(value = Array("findUserById","findFriendGroupsById","findUserByGroupId"), allEntries = true)
+  @Transactional
+  def changeGroup(groupId: Integer, uId: Integer, mId: Integer):Boolean = {
+    if (groupId == null || uId == null || mId == null)
+      return false
+    else
+      userMapper.changeGroup(groupId, uId, mId) == 1
+  }
+
+  /**
+    * description 更新用户头像
+    * param userId
+    * param avatar
+    * return
+    */
+  @CacheEvict(value = Array("findUserById"), allEntries = true)
+  @Transactional
+  def updateAvatar(userId: Integer, avatar: String): Boolean = {
+    if (userId == null | avatar == null)
+      return false
+    else
+      userMapper.updateAvatar(userId, avatar) == 1
+  }
 
   /**
     * description 统计查询消息
@@ -259,9 +354,6 @@ class UserService @Autowired()(private var userMapper: UserMapper) {
       userMapper.matchUser(email) != null
   }
 
-
-  private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserService])
-
   def createFriendGroup( groupName: String, uid: Integer): Boolean = {
     if (uid == null || groupName == null || "".equals(uid) || "".equals(groupName))
       return false
@@ -284,7 +376,9 @@ class UserService @Autowired()(private var userMapper: UserMapper) {
       LOGGER.info("userid = " + user.getId)
       //创建默认的好友分组
       createFriendGroup(SystemConstant.DEFAULT_GROUP_NAME, user.getId)
-      //@Todo 邮件发送功能还没有实现
+      //发送激活电子邮件
+      mailService.sendHtmlMail(user.getEmail, SystemConstant.SUBJECT,
+        user.getUsername +",请确定这是你本人注册的账号   " + ", " + WebUtil.getServerIpAdder(request) + "/user/active/" + activeCode)
     }
     true
   }

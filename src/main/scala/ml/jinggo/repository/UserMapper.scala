@@ -10,6 +10,54 @@ import java.util.List
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+
+  /**
+    * description 移动好友分组
+    * param groupId 新的分组id
+    * param uId 被移动的好友id
+    * param mId 我的id
+    * return
+    */
+  @Update(Array("update t_friend_group_friends set fgid = #{groupId} where id =(select t.id from ((select id from t_friend_group_friends where fgid in (select id from t_friend_group where uid = #{mId}) and uid = #{uId}) t))"))
+  def changeGroup(@Param("groupId") groupId: Integer, @Param("uId") uId: Integer, @Param("mId") mId: Integer):Int
+
+  /**
+    * description 激活用户账号
+    * param activeCode
+    * return List[User]
+    */
+  @Update(Array("update t_user set status = 'offline' where active = #{activeCode}"))
+  def activeUser(@Param("activeCode") activeCode: String): Int
+
+  /**
+    * description 查询消息
+    * param uid
+    * param status 历史消息还是离线消息 0代表离线 1表示已读
+    */
+  @Results(value = Array(new Result(property="id",column="mid")))
+  @Select(Array("select toid,fromid,mid,content,type,timestamp,status from t_message where toid = #{uid} and status = #{status}"))
+  def findOffLineMessage(@Param("uid") uid: Integer, @Param("status") status: Integer): List[Receive]
+
+  /**
+    * description 查询消息
+    * param uid 消息所属用户
+    * param mid 来自哪个用户
+    * param Type 消息类型，可能来自friend或者group
+    */
+  @Results(value = Array(new Result(property="id",column="mid")))
+  @Select(Array("<script> select toid,fromid,mid,content,type,timestamp,status from t_message where type = #{Type} and " +
+    "<choose><when test='uid!=null and mid !=null'>(toid = #{uid} and mid = #{mid}) or (toid = #{mid} and mid = #{uid}) </when><when test='mid != null'> mid = #{mid} </when></choose> order by timestamp </script>"))
+  def findHistoryMessage(@Param("uid") uid: Integer, @Param("mid") mid: Integer, @Param("Type") Type: String): List[Receive]
+
+  /**
+    * description 更新用户头像
+    * param userId
+    * param avatar
+    * return
+    */
+  @Update(Array("update t_user set avatar=#{avatar} where id=#{userId}"))
+  def updateAvatar(@Param("userId") userId: Integer, @Param("avatar") avatar: String): Int
+
   /**
     * description 统计查询消息
     * param uid 消息所属用户

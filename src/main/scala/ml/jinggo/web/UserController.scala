@@ -7,8 +7,8 @@ import com.github.pagehelper.PageHelper
 import com.google.gson.Gson
 import io.swagger.annotations.{Api, ApiOperation}
 import ml.jinggo.common.SystemConstant
-import ml.jinggo.domain.{FriendAndGroupInfo, ResultPageSet, ResultSet}
-import ml.jinggo.entity.User
+import ml.jinggo.domain.{FriendAndGroupInfo, FriendList, ResultPageSet, ResultSet}
+import ml.jinggo.entity.{ChatHistory, Receive, User}
 import ml.jinggo.service.UserService
 import ml.jinggo.util.FileUtil
 import org.slf4j.{Logger, LoggerFactory}
@@ -17,6 +17,8 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation._
 import org.springframework.web.multipart.MultipartFile
+
+import scala.collection.JavaConversions
 
 /**
   * Created by gz12 on 2018-07-03.
@@ -29,6 +31,95 @@ class UserController @Autowired()(private val userService : UserService){
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[UserController])
 
   private final val gson: Gson = new Gson
+
+  /**
+    * description 根据id查找用户信息
+    * param id
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/findUser"), method = Array(RequestMethod.POST, RequestMethod.GET))
+  def findUserById(@RequestParam("id") id: Integer): String = {
+    gson.toJson(new ResultSet(userService.findUserById(id)))
+  }
+
+  /**
+    * description 激活
+    * param activeCode
+    *
+    */
+  @RequestMapping(value = Array("/active/{activeCode}"), method = Array(RequestMethod.GET))
+  def activeUser(@PathVariable("activeCode") activeCode: String): String = {
+    if(userService.activeUser(activeCode) == 1) {
+      return "redirect:/#tologin?status=1"
+    }
+    "redirect:/#toregister?status=0"
+  }
+
+  /**
+    * description 获取离线消息
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/getOffLineMessage"), method = Array(RequestMethod.POST))
+  def getOffLineMessage(request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    LOGGER.info("查询 uid = " + user.getId + " 的离线消息")
+    val receives: List[Receive] = userService.findOffLineMessage(user.getId, 0)
+    JavaConversions.collectionAsScalaIterable(receives).foreach { receive => {
+      val user = userService.findUserById(receive.getId)
+      receive.setUsername(user.getUsername)
+      receive.setAvatar(user.getAvatar)
+    } }
+    gson.toJson(new ResultSet(receives)).replaceAll("Type", "type")
+  }
+
+  /**
+    * description 移动好友分组
+    * param groupId 新的分组id
+    * param userId 被移动的好友id
+    * param request
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/changeGroup"), method = Array(RequestMethod.POST))
+  def changeGroup(@RequestParam("groupId") groupId: Integer, @RequestParam("userId") userId: Integer
+                  ,request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    val result = userService.changeGroup(groupId, userId, user.getId)
+    if (result)
+      return gson.toJson(new ResultSet(result))
+    else
+      gson.toJson(new ResultSet(SystemConstant.ERROR, SystemConstant.ERROR_MESSAGE))
+  }
+
+  /**
+    * description 获取群成员
+    * param id
+    *
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/getMembers"), method = Array(RequestMethod.GET))
+  def getMembers(@RequestParam("id") id: Int): String = {
+    val users = userService.findUserByGroupId(id)
+    val friends = new FriendList(users)
+    gson.toJson(new ResultSet[FriendList](friends))
+  }
+
+  /**
+    * description用户更新头像
+    * param file
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/updateAvatar"), method = Array(RequestMethod.POST))
+  def updateAvatar(@RequestParam("avatar") avatar: MultipartFile, request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    val path = request.getServletContext.getRealPath(SystemConstant.AVATAR_PATH)
+    val src = FileUtil.upload(path, avatar)
+    userService.updateAvatar(user.getId, src)
+    var result = new HashMap[String, String]
+    result.put("src", src)
+    gson.toJson(new ResultSet(result))
+  }
 
   /**
     * description 客户端上传文件
@@ -71,6 +162,22 @@ class UserController @Autowired()(private val userService : UserService){
     result.put("src", src)
     LOGGER.info("图片" + file.getOriginalFilename + "上传成功")
     gson.toJson(new ResultSet[HashMap[String, String]](result))
+  }
+
+  /**
+    * description 获取聊天记录
+    * param id 与谁的聊天记录id
+    * param Type 类型，可能是friend或者是group
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/chatLog"), method = Array(RequestMethod.POST))
+  def chatLog(@RequestParam("id") id: Integer, @RequestParam("Type") Type: String,
+              @RequestParam("page") page: Int, request: HttpServletRequest, model: Model): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    PageHelper.startPage(page, SystemConstant.SYSTEM_PAGE)
+    //查找聊天记录
+    val historys:List[ChatHistory] = userService.findHistoryMessage(user, id, Type)
+    gson.toJson(new ResultSet(historys))
   }
 
   /**
