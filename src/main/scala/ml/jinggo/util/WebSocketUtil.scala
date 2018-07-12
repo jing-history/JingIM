@@ -1,5 +1,6 @@
 package ml.jinggo.util
 
+import java.util
 import java.util._
 import java.util.Collections
 
@@ -8,9 +9,10 @@ import org.slf4j.{Logger, LoggerFactory}
 import javax.websocket.Session
 
 import com.google.gson.Gson
+import ml.jinggo.common.SystemConstant
 import ml.jinggo.entity._
-import ml.jinggo.service.UserService
-import org.springframework.data.redis.connection.RedisServer
+import ml.jinggo.service.{RedisService, UserService}
+import ml.jinggo.websocket.domain.Domain
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConversions
@@ -27,7 +29,7 @@ object WebSocketUtil {
 
   @BeanProperty final var sessions = Collections.synchronizedMap(new HashMap[Integer, Session]())
 
-  private lazy val redisService: RedisServer = application.getBean(classOf[RedisServer])
+  private lazy val redisService: RedisService = application.getBean(classOf[RedisService])
 
   private lazy val userService: UserService = application.getBean(classOf[UserService])
 
@@ -68,6 +70,106 @@ object WebSocketUtil {
         }}
       //保存为离线消息,默认是为离线消息
       userService.saveMessage(receive)
+    }
+  }
+
+  /**
+    * description 统计离线消息数量
+    * param uid
+    */
+  def countUnHandMessage(uid: Integer): HashMap[String, String] = synchronized{
+    val count = userService.countUnHandMessage(uid, 0)
+    LOGGER.info("count = " + count)
+    var result = new HashMap[String, String]
+    result.put("type", "unHandMessage")
+    result.put("count", count + "")
+    result
+  }
+
+  /**
+    * description 拒绝添加群
+    * param mess
+    */
+  def refuseAddGroup(mess: Message): Unit = {
+    val refuse = gson.fromJson(mess.getMsg, classOf[Domain.AgreeAddGroup])
+    userService.updateAddMessage(refuse.getMessageBoxId, 2)
+  }
+
+  /**
+    * description 用户在线切换状态
+    * param uid 用户id
+    * param status 状态
+    */
+  def changeOnline(uid: Integer, status: String) = synchronized {
+    if ("online".equals(status)) {
+      redisService.setSet(SystemConstant.ONLINE_USER, uid + "")
+    } else {
+      redisService.removeSetValue(SystemConstant.ONLINE_USER, uid + "")
+    }
+  }
+
+  /**
+    * 监测某个用户的离线或者在线
+    * @param message
+    * @param session
+    * @return
+    */
+  def checkOnline(message: Message, session: Session): HashMap[String, String] = synchronized {
+    LOGGER.info("监测在线状态" + message.getTo.toString)
+    val uids = redisService.getSets(SystemConstant.ONLINE_USER)
+    var result = new HashMap[String, String]
+    result.put("type","checkOnline")
+    if(uids.contains(message.getTo.getId.toString))
+      result.put("status", "在线")
+    else
+      result.put("status", "离线")
+    result
+  }
+
+  /**
+    * description 同意添加好友
+    * param mess
+    */
+  def agreeAddGroup(mess: Message): Unit = {
+    val agree = gson.fromJson(mess.getMsg, classOf[Domain.AgreeAddGroup])
+    userService.addGroupMember(agree.getGroupId, agree.getToUid, agree.getMessageBoxId)
+  }
+
+  /**
+    * description 添加群组
+    * param uid
+    * param message
+    */
+  def addGroup(uid: Integer, message: Message):Unit = synchronized {
+    val addMessage = new AddMessage
+    val mine = message.getMine
+    val to = message.getTo
+    val t = gson.fromJson(message.getMsg, classOf[Domain.Group])
+    addMessage.setFromUid(mine.getId)
+    addMessage.setToUid(to.getId)
+    addMessage.setTime(DateUtil.getDateTime)
+    addMessage.setGroupId(t.getGroupId)
+    addMessage.setRemark(t.getRemark)
+    addMessage.setType(1)
+    userService.saveAddMessage(addMessage)
+    var result = new HashMap[String, String]
+    if (sessions.get(to.getId) != null) {
+      result.put("type", "addGroup")
+      sendMessage(gson.toJson(result), sessions.get(to.getId))
+    }
+  }
+  /**
+    * description 通知对方删除好友
+    * param uId我的id
+    * param friendId 对方Id
+    */
+  def removeFriend(uId: Integer, friendId: Integer) = synchronized {
+    //对方是否在线，在线则处理，不在线则不处理
+    var result = new HashMap[String, String]
+    if(sessions.get(friendId) != null) {
+      result.put("type", "delFriend");
+      result.put("uId", uId + "");
+      WebSocketUtil.sendMessage(gson.toJson(result), sessions.get(friendId))
     }
   }
 

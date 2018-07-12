@@ -1,6 +1,6 @@
 package ml.jinggo.repository
 
-import ml.jinggo.domain.{AddInfo, FriendList, GroupList}
+import ml.jinggo.domain.{AddInfo, FriendList, GroupList, GroupMember}
 import ml.jinggo.entity._
 import org.apache.ibatis.annotations._
 import java.util.List
@@ -10,6 +10,46 @@ import java.util.List
   * Created by gz12 on 2018-07-09.
   */
 trait UserMapper {
+
+  /**
+    * description 退出群
+    * param groupMember
+    */
+  @Delete(Array("delete from t_group_members where gid=#{gid} and uid=#{uid}"))
+  def leaveOutGroup(groupMember: GroupMember): Int
+
+  /**
+    * description 添加群成员
+    * param gid 群编号
+    * param uid 用户编号
+    */
+  @Insert(Array("insert into t_group_members(gid,uid) values(#{gid},#{uid})"))
+  def addGroupMember(groupMember: GroupMember): Int
+
+  /**
+    * description 根据群名模糊查询群
+    * param groupName
+    * return
+    */
+  @Select(Array("<script> select id,group_name,avatar,create_id from t_group where 1=1 <if test='groupName != null'> and group_name like '%${groupName}%'</if></script>"))
+  def findGroup(@Param("groupName") groupName: String): List[GroupList]
+
+  /**
+    * description 根据群名模糊统计
+    * param groupName
+    * return
+    */
+  @Select(Array("<script> select count(*) from t_group where 1 = 1 <if test='groupName != null'> and group_name like '%${groupName}%'</if></script>"))
+  def countGroup(@Param("groupName")  groupName: String): Int
+
+  /**
+    * description 删除好友
+    * param friendId 好友Id
+    * param uId 个人Id
+    * return Int
+    */
+  @Delete(Array("delete from t_friend_group_friends where fgid in (select id from t_friend_group where uid in (#{friendId}, #{uId})) and uid in(#{friendId}, #{uId})"))
+  def removeFriend(@Param("friendId") friendId: Integer, @Param("uId") uId: Integer): Int
 
   /**
     * description 更新好友、群组信息请求

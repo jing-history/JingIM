@@ -36,6 +36,13 @@ class WebSocket {
       case "message" => {
         WebSocketUtil.sendMessage(mess)
       }
+      case "checkOnline" => {
+        val result = WebSocketUtil.checkOnline(mess, session)
+        WebSocketUtil.sendMessage(gson.toJson(result), session)
+      }
+      case "changOnline" => {
+        WebSocketUtil.changeOnline(uid, mess.getMsg)
+      }
       case "addFriend" => {
         WebSocketUtil.addFriend(uid, mess)
       }
@@ -43,6 +50,22 @@ class WebSocket {
         if (WebSocketUtil.getSessions.get(mess.getTo.getId) != null) {
           WebSocketUtil.sendMessage(message, WebSocketUtil.getSessions.get(mess.getTo.getId))
         }
+      }
+      case "delFriend" => {
+        WebSocketUtil.removeFriend(uid, mess.getTo.getId)
+      }
+      case "addGroup" => {
+        WebSocketUtil.addGroup(uid, mess)
+      }
+      case "agreeAddGroup" => {
+        WebSocketUtil.agreeAddGroup(mess)
+      }
+      case "refuseAddGroup" => {
+        WebSocketUtil.refuseAddGroup(mess)
+      }
+      case "unHandMessage" => {
+        val result = WebSocketUtil.countUnHandMessage(uid)
+        WebSocketUtil.sendMessage(gson.toJson(result), session)
       }
       case _ => {
         LOGGER.info("No Mapping Message!")

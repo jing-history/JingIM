@@ -3,14 +3,14 @@ package ml.jinggo.service
 import javax.servlet.http.HttpServletRequest
 
 import ml.jinggo.common.SystemConstant
-import ml.jinggo.domain.{AddInfo, FriendList, GroupList}
+import ml.jinggo.domain.{AddInfo, FriendList, GroupList, GroupMember}
 import ml.jinggo.entity._
 import ml.jinggo.repository.UserMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ml.jinggo.util.{DateUtil, SecurityUtil, UUIDUtil}
-import org.apache.ibatis.annotations.{Param, Select}
+import org.apache.ibatis.annotations.{Delete, Param, Select}
 import org.slf4j.{Logger, LoggerFactory}
 import org.springframework.cache.annotation.{CacheEvict, Cacheable}
 
@@ -24,6 +24,57 @@ import java.util.List
   */
 @Service
 class UserService @Autowired()(private var userMapper: UserMapper) {
+
+  /**
+    * description 退出群
+    * param groupMember
+    */
+  @CacheEvict(value = Array("findUserById","findFriendGroupsById","findUserByGroupId"), allEntries = true)
+  def leaveOutGroup(gid: Integer, uid: Integer): Boolean = userMapper.leaveOutGroup(new GroupMember(gid, uid)) == 1
+
+  /**
+    * description 添加群成员
+    * param gid 群编号
+    * param uid 用户编号
+    * param messageBoxId 消息盒子Id
+    */
+  @Transactional
+  def addGroupMember(gid: Integer, uid: Integer, messageBoxId: Integer): Boolean = {
+    if (gid == null || uid == null ) {
+      return false
+    } else {
+      userMapper.addGroupMember(new GroupMember(gid, uid)) == 1
+      updateAddMessage(messageBoxId, 1)
+    }
+  }
+
+  /**
+    * description 根据群名模糊查询群
+    * param groupName
+    * return
+    */
+  def findGroup(groupName: String): List[GroupList] = userMapper.findGroup(groupName)
+
+  /**
+    * description 根据群名模糊统计
+    * param groupName
+    * return
+    */
+  def countGroup(groupName: String): Int = userMapper.countGroup(groupName)
+
+  /**
+    * description 删除好友
+    * param friendId 好友Id
+    * param uId 个人Id
+    * return Boolean
+    */
+  @CacheEvict(value = Array("findUserById","findFriendGroupsById","findUserByGroupId"), allEntries = true)
+  def removeFriend(friendId: Integer, uId: Integer): Boolean = {
+    if (friendId == null || uId == null)
+      return false
+    else
+      userMapper.removeFriend(friendId, uId) == 1
+  }
 
   /**
     * description 添加好友操作

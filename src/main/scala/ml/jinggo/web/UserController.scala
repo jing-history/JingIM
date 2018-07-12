@@ -28,6 +28,64 @@ class UserController @Autowired()(private val userService : UserService){
   private final val gson: Gson = new Gson
 
   /**
+    * description 退出群
+    * param groupId 群编号
+    * param request
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/leaveOutGroup"), method = Array(RequestMethod.POST))
+  def leaveOutGroup(@RequestParam("groupId") groupId: Integer, request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    val result = userService.leaveOutGroup(groupId, user.getId)
+    gson.toJson(new ResultSet(result))
+  }
+
+  /**
+    * description 分页查找群组
+    * param page 第几页
+    * param name 群名称
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/findGroups"), method = Array(RequestMethod.GET))
+  def findGroups(@RequestParam(value = "page",defaultValue = "1") page: Int,
+                 @RequestParam(value = "name", required = false) name: String): String = {
+    val count = userService.countGroup(name)
+    val pages = if (count < SystemConstant.USER_PAGE) 1 else (count / SystemConstant.USER_PAGE + 1)
+    PageHelper.startPage(page, SystemConstant.USER_PAGE)
+    val groups = userService.findGroup(name)
+    var result = new ResultPageSet(groups)
+    result.setPages(pages)
+    gson.toJson(result)
+  }
+
+  /**
+    * description 删除好友
+    * param friendId
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/removeFriend"), method = Array(RequestMethod.POST))
+  def removeFriend(@RequestParam("friendId") friendId: Integer,request: HttpServletRequest): String = {
+    val user = request.getSession.getAttribute("user").asInstanceOf[User]
+    val result = userService.removeFriend(friendId, user.getId)
+    gson.toJson(new ResultSet(result))
+  }
+
+  /**
+    * description 拒绝添加好友
+    * param request
+    * param messageBoxId 消息盒子的消息id
+    * return
+    */
+  @ResponseBody
+  @RequestMapping(value = Array("/refuseFriend"), method = Array(RequestMethod.POST))
+  def refuseFriend(@RequestParam("messageBoxId") messageBoxId: Integer,request: HttpServletRequest): String = {
+    val result = userService.updateAddMessage(messageBoxId, 2)
+    gson.toJson(new ResultSet(result))
+  }
+
+  /**
     * description 添加好友
     * param uid 对方用户ID
     * param fromGroup 对方设定的好友分组
