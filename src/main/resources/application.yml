@@ -22,7 +22,7 @@ spring:
   mail:
    host: smtp.126.com
    username: wangyj0898@126.com
-   password: jing62661206wy2
+   password: **********
    port: 25
    properties:
      smtp:
